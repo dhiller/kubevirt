@@ -7,7 +7,7 @@ export GOPATH="/go"
 export GOBIN="/usr/bin"
 source /etc/profile.d/gimme.sh
 
-export DOCKER_PREFIX='https://registry.svc.ci.openshift.org/kubevirt/kubevirt'
+export DOCKER_PREFIX='docker.io/dhiller/kubevirt'
 export DOCKER_TAG="$( echo "${JOB_NAME}-${BUILD_ID}" | md5sum -t | cut -c 1-8 )"
 export KUBEVIRT_PROVIDER=external
 
