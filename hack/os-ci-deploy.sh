@@ -9,7 +9,7 @@ source /etc/profile.d/gimme.sh
 
 export DOCKER_PREFIX='docker.io/dhiller/kubevirt'
 export DOCKER_TAG="$( echo "${JOB_NAME}-${BUILD_ID}" | md5sum -t | cut -c 1-8 )"
-export KUBEVIRT_PROVIDER=external
+export KUBEVIRT_PROVIDER=k8s-1.16.2
 
 echo "building and pushing images"
 bash -x ./hack/bazel-push-images.sh
@@ -21,5 +21,5 @@ echo "deploying"
 bash -x ./hack/cluster-deploy.sh
 
 echo "testing"
-bash -x ./hack/build-func-tests.sh"
+bash -x ./hack/build-func-tests.sh
 bash -x ./hack/functests.sh
