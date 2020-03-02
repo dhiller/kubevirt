@@ -94,6 +94,9 @@ RUN \
     source /etc/profile.d/gimme.sh && \
     (cd cluster-up/cluster/external && curl -L -O -o provider.sh https://raw.githubusercontent.com/dhiller/kubevirtci/fix-external-provider/cluster-up/cluster/external/provider.sh) && \
     bash -x ./hack/build-manifests.sh && \
+    export CMD_OUT_DIR="$(pwd)/_out/cmd" && \
+    mkdir -p _out/cmd/dump/ && \
+    GOPROXY=off GOFLAGS=-mod=vendor go build -o "$CMD_OUT_DIR/dump/dump" ./cmd/dump && \
     bash -x ./hack/build-func-tests.sh && \
     curl -L -O -o kvm-ds.yaml https://raw.githubusercontent.com/kubevirt/kubernetes-device-plugins/master/manifests/kvm-ds.yml
 FROM centos:7
