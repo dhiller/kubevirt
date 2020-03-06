@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 set -xeuo pipefail
 
-export PATH=$PATH:/usr/local/go/bin/
-
-export GIMME_GO_VERSION=1.12.8
-export GOPATH="/go"
-export GOBIN="/usr/bin"
-source /etc/profile.d/gimme.sh
-
 export DOCKER_PREFIX='dhiller'
 export DOCKER_TAG="latest"
 export KUBEVIRT_PROVIDER=external
-
-oc config view
 
 echo "calling cluster-up to prepare config and check whether cluster is reachable"
 # TODO: remove patching of external provider, after kubevirtci#199 has been merged and kubevirt updates
