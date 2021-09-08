@@ -34,7 +34,7 @@ function dump_kubevirt() {
 
 function _deploy_infra_for_tests() {
     if [[ "$KUBEVIRT_DEPLOY_CDI" == "false" ]]; then
-        rm -f ${MANIFESTS_OUT_DIR}/testing/cdi-* ${MANIFESTS_OUT_DIR}/testing/uploadproxy-nodeport.yaml \
+        rm -f ${MANIFESTS_OUT_DIR}/testing/uploadproxy-nodeport.yaml \
             ${MANIFESTS_OUT_DIR}/testing/local-block-storage.yaml ${MANIFESTS_OUT_DIR}/testing/disks-images-provider.yaml
     fi
 
@@ -43,17 +43,8 @@ function _deploy_infra_for_tests() {
 }
 
 function _ensure_cdi_deployment() {
-    _kubectl apply -f - <<EOF
----
-apiVersion: cdi.kubevirt.io/v1beta1
-kind: CDI
-metadata:
-  name: ${cdi_namespace}
-spec:
-  config:
-    featureGates:
-    - HonorWaitForFirstConsumer
-EOF
+    # enable featuregate
+    _kubectl patch cdi ${cdi_namespace} --type merge -p '{"spec": {"config": {"featureGates": [ "HonorWaitForFirstConsumer" ]}}}'
 
     # Ensure that cdi insecure registries are set
     count=0
