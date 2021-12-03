@@ -37,7 +37,7 @@ var Polarion = PolarionReporter{}
 func init() {
 	flag.BoolVar(&Polarion.Run, "polarion-execution", false, "Run Polarion reporter")
 	flag.StringVar(&Polarion.ProjectId, "polarion-project-id", "", "Set Polarion project ID")
-	flag.StringVar(&Polarion.Filename, "polarion-report-file", "polarion_results.xml", "Set Polarion report file path")
+	flag.StringVar(&Polarion.Filename, "polarion-report-file", "polarion_results.xml", "Set Polarion report file path. Supports decimal placeholder %d to be present for ParallelNode injection, if it's not, then the parallel node no is used as a prefix")
 	flag.StringVar(&Polarion.PlannedIn, "polarion-custom-plannedin", "", "Set Polarion planned-in ID")
 	flag.StringVar(&Polarion.LookupMethod, "polarion-lookup-method", "id", "Set Polarion lookup method - id or name")
 	flag.StringVar(&Polarion.TestSuiteParams, "test-suite-params", "", "Set test suite params in space seperated name=value structure. Note that the values will be appended to the test run ID")
@@ -93,6 +93,7 @@ type PolarionReporter struct {
 	TestIDPrefix    string
 	TestRunTemplate string
 	TestRunTitle    string
+	ParallelNode    int
 }
 
 func (reporter *PolarionReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
@@ -133,7 +134,7 @@ func (reporter *PolarionReporter) SpecSuiteWillBegin(config config.GinkgoConfigT
 		reporter.Suite.Properties.Property = addProperty(
 			reporter.Suite.Properties.Property, "polarion-testrun-title", reporter.TestRunTitle)
 	}
-		
+
 	reporter.TestSuiteName = summary.SuiteDescription
 }
 
@@ -215,8 +216,18 @@ func (reporter *PolarionReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	reporter.Suite.Time = summary.RunTime.Seconds()
 	reporter.Suite.Failures = summary.NumberOfFailedSpecs
 
+	// include parallel node number in output file name in case of ginkgo parallel runs
+	outputFile := reporter.Filename
+	if reporter.ParallelNode > 0 {
+		if strings.Contains(reporter.Filename, "%d") {
+			outputFile = fmt.Sprintf(reporter.Filename, reporter.ParallelNode)
+		} else {
+			outputFile = fmt.Sprintf("%d_" + reporter.Filename, reporter.ParallelNode)
+		}
+	}
+
 	// generate polarion test cases XML file
-	polarion_xml.GeneratePolarionXmlFile(reporter.Filename, reporter.Suite)
+	polarion_xml.GeneratePolarionXmlFile(outputFile, reporter.Suite)
 
 }
 

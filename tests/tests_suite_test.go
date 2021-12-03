@@ -60,7 +60,11 @@ func TestTests(t *testing.T) {
 	}
 	if config.GinkgoConfig.ParallelTotal > 1 {
 		artifactsPath = path.Join(artifactsPath, strconv.Itoa(config.GinkgoConfig.ParallelNode))
-		junitOutput = path.Join(flags.ArtifactsDir, fmt.Sprintf("partial.junit.functest.%d.xml", config.GinkgoConfig.ParallelNode))
+		if qe_reporters.JunitOutput != "" {
+			junitOutput = fmt.Sprintf(qe_reporters.JunitOutput, config.GinkgoConfig.ParallelNode)
+		} else {
+			junitOutput = path.Join(flags.ArtifactsDir, fmt.Sprintf("partial.junit.functest.%d.xml", config.GinkgoConfig.ParallelNode))
+		}
 	}
 
 	outputEnricherReporter := reporter.NewCapturedOutputEnricher(
@@ -73,6 +77,9 @@ func TestTests(t *testing.T) {
 		k8sReporter,
 	}
 	if qe_reporters.Polarion.Run {
+		if config.GinkgoConfig.ParallelTotal > 1 {
+			qe_reporters.Polarion.ParallelNode = config.GinkgoConfig.ParallelNode
+		}
 		reporters = append(reporters, &qe_reporters.Polarion)
 	}
 
