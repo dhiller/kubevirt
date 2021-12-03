@@ -21,8 +21,9 @@ package tests_test
 
 import (
 	"fmt"
+	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strconv"
 	"testing"
 
@@ -53,16 +54,21 @@ func TestTests(t *testing.T) {
 	flags.NormalizeFlags()
 	tests.CalculateNamespaces()
 	maxFails := getMaxFailsFromEnv()
-	artifactsPath := path.Join(flags.ArtifactsDir, "k8s-reporter")
-	junitOutput := path.Join(flags.ArtifactsDir, "junit.functest.xml")
+	artifactsPath := filepath.Join(flags.ArtifactsDir, "k8s-reporter")
+	junitOutput := filepath.Join(flags.ArtifactsDir, "junit.functest.xml")
 	if qe_reporters.JunitOutput != "" {
-		junitOutput = qe_reporters.JunitOutput
+		junitOutput = filepath.Join(flags.ArtifactsDir, qe_reporters.JunitOutput)
 	}
 	if config.GinkgoConfig.ParallelTotal > 1 {
-		artifactsPath = path.Join(artifactsPath, strconv.Itoa(config.GinkgoConfig.ParallelNode))
-		junitOutput = path.Join(flags.ArtifactsDir, fmt.Sprintf("partial.junit.functest.%d.xml", config.GinkgoConfig.ParallelNode))
+		artifactsPath = filepath.Join(artifactsPath, strconv.Itoa(config.GinkgoConfig.ParallelNode))
+		if qe_reporters.JunitOutput != "" {
+			junitOutput = filepath.Join(flags.ArtifactsDir, strconv.Itoa(config.GinkgoConfig.ParallelNode) + "_" + qe_reporters.JunitOutput)
+		} else {
+			junitOutput = filepath.Join(flags.ArtifactsDir, fmt.Sprintf("partial.junit.functest.%d.xml", config.GinkgoConfig.ParallelNode))
+		}
 	}
 
+	log.Printf("logging junit output to %s", junitOutput)
 	outputEnricherReporter := reporter.NewCapturedOutputEnricher(
 		ginkgo_reporters.NewJUnitReporter(junitOutput),
 	)
@@ -73,6 +79,10 @@ func TestTests(t *testing.T) {
 		k8sReporter,
 	}
 	if qe_reporters.Polarion.Run {
+		if config.GinkgoConfig.ParallelTotal > 1 {
+			qe_reporters.Polarion.Filename = filepath.Join(flags.ArtifactsDir, strconv.Itoa(config.GinkgoConfig.ParallelNode) + "_" + qe_reporters.Polarion.Filename)
+		}
+		log.Printf("logging polarion output to %s", qe_reporters.Polarion.Filename)
 		reporters = append(reporters, &qe_reporters.Polarion)
 	}
 
