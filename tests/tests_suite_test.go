@@ -37,6 +37,8 @@ import (
 	"kubevirt.io/kubevirt/tests"
 	qe_reporters "kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 
+	vmsgeneratorutils "kubevirt.io/kubevirt/tools/vms-generator/utils"
+
 	_ "kubevirt.io/kubevirt/tests/launchsecurity"
 	_ "kubevirt.io/kubevirt/tests/monitoring"
 	_ "kubevirt.io/kubevirt/tests/network"
@@ -82,6 +84,9 @@ func TestTests(t *testing.T) {
 		}
 		reporters = append(reporters, &qe_reporters.Polarion)
 	}
+
+	vmsgeneratorutils.DockerPrefix = flags.KubeVirtUtilityRepoPrefix
+	vmsgeneratorutils.DockerTag = flags.KubeVirtVersionTag
 
 	RunSpecsWithDefaultAndCustomReporters(t, "Tests Suite", reporters)
 }
