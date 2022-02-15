@@ -3944,20 +3944,24 @@ func SkipIfOpenShift4(message string) {
 	}
 }
 
-func SkipIfMigrationIsNotPossible() {
-	if !HasLiveMigration() {
-		Skip("LiveMigration feature gate is not enabled in kubevirt-config")
-	}
-
+func SkipIfSchedulableNodesLessThan(minimumNumberOfNodes int) {
 	virtClient, err := kubecli.GetKubevirtClient()
 	util2.PanicOnError(err)
 
 	nodes := util2.GetAllSchedulableNodes(virtClient)
 	Expect(nodes.Items).ToNot(BeEmpty(), "There should be some compute node")
 
-	if len(nodes.Items) < 2 {
+	if len(nodes.Items) < minimumNumberOfNodes {
 		Skip("Migration tests require at least 2 nodes")
 	}
+}
+
+func SkipIfMigrationIsNotPossible() {
+	if !HasLiveMigration() {
+		Skip("LiveMigration feature gate is not enabled in kubevirt-config")
+	}
+
+	SkipIfSchedulableNodesLessThan(2)
 }
 
 // CreateVmiOnNodeLabeled creates a VMI a node that has a give label set to a given value

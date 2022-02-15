@@ -154,6 +154,8 @@ var _ = Describe("[sig-compute]oc/kubectl integration", func() {
 
 		Context("'kubectl get vmim'", func() {
 			It("print the expected columns and their corresponding values", func() {
+				tests.SkipIfMigrationIsNotPossible()
+
 				vmi := tests.NewRandomVMIWithEphemeralDisk(cd.ContainerDiskFor(cd.ContainerDiskCirros))
 				tests.AddUserData(vmi, "cloud-init", "#!/bin/bash\necho 'hello'\n")
 
