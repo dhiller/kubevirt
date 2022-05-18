@@ -16,7 +16,7 @@ require (
 	github.com/go-kit/kit v0.9.0
 	github.com/go-openapi/errors v0.19.9
 	github.com/go-openapi/spec v0.20.3
-	github.com/go-openapi/strfmt v0.20.0
+	github.com/go-openapi/strfmt v0.21.2
 	github.com/go-openapi/validate v0.20.2
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/glog v1.0.0
@@ -127,6 +127,7 @@ require (
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 // indirect
 	github.com/openshift/custom-resource-status v1.1.2 // indirect
 	github.com/pkg/diff v0.0.0-20190930165518-531926345625 // indirect
