@@ -35,7 +35,7 @@ const (
 
 type loginFunction func(*virtv1.VirtualMachineInstance) error
 
-var _ = SIGDescribe("[Serial]VirtualMachineClone Tests", func() {
+var _ = SIGDescribe("[Serial]VirtualMachineClone Tests", Serial, func() {
 	var err error
 	var virtClient kubecli.KubevirtClient
 
