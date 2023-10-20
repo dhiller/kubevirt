@@ -22,7 +22,10 @@ package apply
 import (
 	"bufio"
 	"bytes"
-
+	"github.com/golang/mock/gomock"
+	extclientfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	kubevirtfake "kubevirt.io/client-go/generated/kubevirt/clientset/versioned/fake"
+	"kubevirt.io/client-go/kubecli"
 	installstrategy "kubevirt.io/kubevirt/pkg/virt-operator/resource/generate/install"
 	marshalutil "kubevirt.io/kubevirt/tools/util"
 
@@ -520,5 +523,95 @@ var _ = Describe("Apply", func() {
 			InjectPlacementMetadata(componentConfig, podSpec)
 			Expect(podSpec.Affinity.PodAntiAffinity.PreferredDuringSchedulingIgnoredDuringExecution).To(HaveLen(1))
 		})
+	})
+
+	type doWithReconciler func(r *Reconciler) error
+
+	Context("deleteObjectsNotInInstallStrategy", func() {
+
+		namespace := "fake-namespace"
+
+		getConfig := func(registry, version string) *util.KubeVirtDeploymentConfig {
+			return util.GetTargetConfigFromKV(&v1.KubeVirt{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+				Spec: v1.KubeVirtSpec{
+					ImageRegistry: registry,
+					ImageTag:      version,
+				},
+			})
+		}
+
+		var ctrl *gomock.Controller
+		var config *util.KubeVirtDeploymentConfig
+		var strategy *install.Strategy
+		var virtClient *kubecli.MockKubevirtClient
+		var apiServiceClient *install.MockAPIServiceInterface
+		var stores util.Stores
+
+		BeforeEach(func() {
+			config = getConfig("fake-registry", "v9.9.9")
+
+			var err error
+			strategy, err = install.GenerateCurrentInstallStrategy(config, "openshift-monitoring", namespace)
+			Expect(err).NotTo(HaveOccurred())
+
+			ctrl = gomock.NewController(GinkgoT())
+			virtClient = kubecli.NewMockKubevirtClient(ctrl)
+			extClient := extclientfake.NewSimpleClientset()
+			virtFakeClient := kubevirtfake.NewSimpleClientset()
+
+			virtClient.EXPECT().ExtensionsClient().Return(extClient).AnyTimes()
+			instancetypes := virtFakeClient.InstancetypeV1beta1().VirtualMachineClusterInstancetypes()
+			// FIXME expect call to List method here
+			virtClient.EXPECT().VirtualMachineClusterInstancetype().Return(instancetypes).AnyTimes()
+			apiServiceClient = install.NewMockAPIServiceInterface(ctrl)
+
+			stores = util.Stores{
+				ValidationWebhookCache:  &MockStore{},
+				MutatingWebhookCache:    &MockStore{},
+				APIServiceCache:         &MockStore{},
+				SecretCache:             &MockStore{},
+				ConfigMapCache:          &MockStore{},
+				CrdCache:                &MockStore{},
+				DaemonSetCache:          &MockStore{},
+				DeploymentCache:         &MockStore{},
+				ServiceCache:            &MockStore{},
+				ClusterRoleBindingCache: &MockStore{},
+				ClusterRoleCache:        &MockStore{},
+				RoleBindingCache:        &MockStore{},
+				RoleCache:               &MockStore{},
+				ServiceAccountCache:     &MockStore{},
+				SCCCache:                &MockStore{},
+				PrometheusRuleCache:     &MockStore{},
+				ServiceMonitorCache:     &MockStore{},
+			}
+		})
+
+		FDescribeTable("execute delete", func(configureReconciler, validateReconciler doWithReconciler, expectedError error) {
+			kv := &v1.KubeVirt{}
+			r, err := NewReconciler(kv, strategy, stores, virtClient, apiServiceClient, nil, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(configureReconciler(r)).To(Succeed())
+			err = r.deleteObjectsNotInInstallStrategy()
+			if expectedError != nil {
+				Expect(err).To(BeEquivalentTo(expectedError))
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+			}
+			Expect(validateReconciler(r)).To(Succeed())
+		},
+			Entry("ValidationWebhookCache - TODO",
+				func(r *Reconciler) error {
+					return nil
+				},
+				func(r *Reconciler) error {
+					return nil
+				},
+				nil,
+			),
+		)
+
 	})
 })
