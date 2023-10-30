@@ -18,6 +18,7 @@
 #
 
 set -e
+set -x
 
 DOCKER_TAG=${DOCKER_TAG:-devel}
 DOCKER_TAG_ALT=${DOCKER_TAG_ALT:-devel_alt}
@@ -75,23 +76,31 @@ if [ "$KUBEVIRT_E2E_PARALLEL" == "true" ]; then
     serial_test_args=""
     k8s_reporter_path="${ARTIFACTS}/k8s-reporter"
 
-    if [ -n "$KUBEVIRT_E2E_SKIP" ]; then
-        parallel_test_args="${parallel_test_args} --skip=\\[Serial\\]|${KUBEVIRT_E2E_SKIP}"
-        serial_test_args="${serial_test_args} --skip=${KUBEVIRT_E2E_SKIP}"
+    if [ -n "$KUBEVIRT_FUNC_TEST_LABEL_FILTER" ]; then
+        if [[ ! "${KUBEVIRT_FUNC_TEST_LABEL_FILTER}" =~ '^--label-filter=' ]]; then
+            parallel_label_filter="--label-filter=(${KUBEVIRT_FUNC_TEST_LABEL_FILTER})"
+            serial_label_filter="--label-filter=(${KUBEVIRT_FUNC_TEST_LABEL_FILTER})"
+        fi
+        parallel_label_filter="${KUBEVIRT_FUNC_TEST_LABEL_FILTER}&&!Serial"
+        serial_label_filter="${KUBEVIRT_FUNC_TEST_LABEL_FILTER}&&Serial"
     else
-        parallel_test_args="${parallel_test_args} --skip=\\[Serial\\]"
+        parallel_label_filter="--label-filter=!Serial"
+        serial_label_filter="--label-filter=Serial"
+    fi
+
+    if [ -n "$KUBEVIRT_E2E_SKIP" ]; then
+        parallel_test_args="${parallel_test_args} --skip=${KUBEVIRT_E2E_SKIP}"
+        serial_test_args="${serial_test_args} --skip=${KUBEVIRT_E2E_SKIP}"
     fi
 
     if [ -n "$KUBEVIRT_E2E_FOCUS" ]; then
         parallel_test_args="${parallel_test_args} --focus=${KUBEVIRT_E2E_FOCUS}"
-        serial_test_args="${serial_test_args} --focus=\\[Serial\\].*(${KUBEVIRT_E2E_FOCUS})|(${KUBEVIRT_E2E_FOCUS}).*\\[Serial\\]"
-    else
-        serial_test_args="${serial_test_args} --focus=\\[Serial\\]"
+        serial_test_args="${serial_test_args} --focus=${KUBEVIRT_E2E_FOCUS}"
     fi
 
     return_value=0
     set +e
-    functest --nodes=${KUBEVIRT_E2E_PARALLEL_NODES} ${parallel_test_args} ${KUBEVIRT_FUNC_TEST_GINKGO_ARGS} "${KUBEVIRT_FUNC_TEST_LABEL_FILTER}"
+    functest --nodes=${KUBEVIRT_E2E_PARALLEL_NODES} ${parallel_test_args} ${KUBEVIRT_FUNC_TEST_GINKGO_ARGS} "${parallel_label_filter}"
     return_value="$?"
     [ -d "${k8s_reporter_path}" ] && mv "${k8s_reporter_path}" "${k8s_reporter_path}"-parallel
     set -e
@@ -99,7 +108,7 @@ if [ "$KUBEVIRT_E2E_PARALLEL" == "true" ]; then
         exit "$return_value"
     fi
     KUBEVIRT_FUNC_TEST_SUITE_ARGS="-junit-output ${ARTIFACTS}/partial.junit.functest.xml ${KUBEVIRT_FUNC_TEST_SUITE_ARGS}"
-    functest ${serial_test_args} ${KUBEVIRT_FUNC_TEST_GINKGO_ARGS} "${KUBEVIRT_FUNC_TEST_LABEL_FILTER}"
+    functest ${serial_test_args} ${KUBEVIRT_FUNC_TEST_GINKGO_ARGS} ${serial_label_filter}
     exit "$return_value"
 else
     additional_test_args=""
