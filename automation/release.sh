@@ -71,6 +71,21 @@ function update_github_release() {
         _out/cmd/cniplugins/*
 }
 
+function upload_github_source_tarball_signature() {
+    local src_tarball_file
+    src_tarball_file="${DOCKER_TAG}.tar.gz"
+
+    # 1. download source tarball
+    # example download url: https://github.com/kubevirt/kubevirt/archive/refs/tags/v1.3.0-beta.0.tar.gz
+    gh release download --repo "$GITHUB_REPOSITORY" --pattern "${src_tarball_file}" --output "/tmp/${src_tarball_file}"
+
+    # 2. sign with private key (to verify the signature a prerequisite is that the public key is uploaded)
+    gpg --armor --detach-sign --local-user "0x99F7C0D2E1BB8025" --output "/tmp/${src_tarball_file}.asc" "/tmp/${src_tarball_file}"
+
+    # 3. upload the detached signature
+    gh release upload --repo "$GITHUB_REPOSITORY" --clobber "$DOCKER_TAG" "/tmp/${src_tarball_file}.asc"
+}
+
 function upload_testing_manifests() {
     # replaces periodic-kubevirt-update-release-x.y-testing-manifests periodics
     gsutil -m rm -r "gs://kubevirt-prow/devel/release/kubevirt/kubevirt/$DOCKER_TAG" || true
@@ -117,4 +132,4 @@ function main() {
     hack/publish-staging.sh
 }
 
-main "$@"
+#main "$@"
